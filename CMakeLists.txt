@@ -24,6 +24,11 @@ set(SOURCES
     src/engine/Texture.mm
     src/engine/FrameTimer.cpp
     src/engine/SpriteBatch.mm
+    src/engine/Entity.cpp
+    src/engine/EntityManager.cpp
+    src/engine/Input.cpp
+    src/game/Player.cpp
+    src/game/Enemy.cpp
 )
 
 # Create executable
