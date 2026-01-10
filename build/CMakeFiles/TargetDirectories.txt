@@ -1,0 +1,3 @@
+/Users/joshuapatterson/ai/8bit-native/build/CMakeFiles/8bit-native.dir
+/Users/joshuapatterson/ai/8bit-native/build/CMakeFiles/edit_cache.dir
+/Users/joshuapatterson/ai/8bit-native/build/CMakeFiles/rebuild_cache.dir
