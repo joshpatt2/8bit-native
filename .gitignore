@@ -1,0 +1,21 @@
+# Build artifacts
+build/
+*.o
+*.o.d
+*.a
+
+# IDE files
+.vscode/
+.idea/
+*.xcodeproj
+*.xcworkspace
+
+# macOS
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Testing
+Testing/
+CTestTestfile.cmake

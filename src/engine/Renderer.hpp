@@ -40,6 +40,12 @@ public:
     // Set clear color (RGBA, 0.0-1.0)
     void setClearColor(float r, float g, float b, float a);
 
+    // Draw a sprite with texture at given position and size
+    void drawSprite(void* texture, void* pipelineState, float x, float y, float width, float height);
+
+    // Get the Metal device (for creating resources)
+    void* getDevice();
+
 private:
     // Pointer to implementation (PIMPL pattern)
     // Hides Objective-C types from C++ header

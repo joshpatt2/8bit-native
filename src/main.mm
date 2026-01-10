@@ -2,10 +2,13 @@
  * 8-Bit Native Engine - Entry Point
  *
  * Creates an SDL2 window with Metal rendering.
- * First milestone: Clear the screen to NES blue.
+ * Sprite rendering test.
  */
 
+#import <Metal/Metal.h>
+#import <QuartzCore/CAMetalLayer.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_metal.h>
 #include <iostream>
 #include "engine/Renderer.hpp"
 #include "engine/Shader.hpp"
@@ -51,10 +54,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Get Metal device from renderer (we need a better API, but for now we'll access it via SDL)
-    SDL_MetalView metalView = SDL_Metal_CreateView(window);
-    void* metalLayer = SDL_Metal_GetLayer(metalView);
-    id<MTLDevice> device = ((__bridge CAMetalLayer*)metalLayer).device;
+    // Get Metal device from renderer
+    id<MTLDevice> device = (__bridge id<MTLDevice>)renderer.getDevice();
 
     // Load shader
     Shader spriteShader;
@@ -72,17 +73,8 @@ int main(int argc, char* argv[]) {
         std::cerr << "Failed to load test texture" << std::endl;
         spriteShader.shutdown();
         renderer.shutdown();
-        SDL_DestroyWind
-        renderer.beginFrame();
-        
-        // Draw test sprite in center of screen (0, 0) with 32x32 size
-        renderer.drawSprite(
-            (__bridge void*)testTexture.getTexture(),
-            (__bridge void*)spriteShader.getPipelineState(),
-            0.0f, 0.0f,  // Center position
-            32.0f, 32.0f // Size
-        );
-        
+        SDL_DestroyWindow(window);
+        SDL_Quit();
         return 1;
     }
 
@@ -104,17 +96,26 @@ int main(int argc, char* argv[]) {
                 if (event.key.keysym.sym == SDLK_ESCAPE) {
                     running = false;
                 }
-    testTexture.shutdown();
-    spriteShader.shutdown();
             }
         }
 
-        // Render frame - just clear to NES blue for now
+        // Render frame
         renderer.beginFrame();
+        
+        // Draw test sprite in center of screen (0, 0) with 32x32 size
+        renderer.drawSprite(
+            (__bridge void*)testTexture.getTexture(),
+            (__bridge void*)spriteShader.getPipelineState(),
+            0.0f, 0.0f,  // Center position
+            32.0f, 32.0f // Size
+        );
+        
         renderer.endFrame();
     }
 
     // Cleanup
+    testTexture.shutdown();
+    spriteShader.shutdown();
     renderer.shutdown();
     SDL_DestroyWindow(window);
     SDL_Quit();
