@@ -3,6 +3,7 @@
  */
 
 #include "Enemy.hpp"
+#include "Player.hpp"
 #include "engine/SpriteBatch.hpp"
 #include <cmath>
 
@@ -13,6 +14,9 @@ Enemy::Enemy(float startX, float startY, void* tex)
     y = startY;
     width = 24.0f;
     height = 24.0f;
+
+    collisionLayer = Layer::Enemy;
+    collisionMask = static_cast<int>(Layer::Player) | static_cast<int>(Layer::PlayerAttack);
 }
 
 void Enemy::update(float dt) {
@@ -57,9 +61,20 @@ void Enemy::render(SpriteBatch& batch) {
     batch.draw(texture, x, y, width, height);
 }
 
+void Enemy::onCollision(Entity* other) {
+    // Enemy touches player = damage
+    if (auto* player = dynamic_cast<Player*>(other)) {
+        player->takeDamage(1);
+    }
+}
+
 void Enemy::takeDamage(int amount) {
     health -= amount;
+
+    // TODO: Hit feedback (flash, knockback, particles)
+
     if (health <= 0) {
-        destroy();  // Mark for cleanup
+        destroy();
+        // TODO: Death particles, score
     }
 }

@@ -27,8 +27,10 @@ set(SOURCES
     src/engine/Entity.cpp
     src/engine/EntityManager.cpp
     src/engine/Input.cpp
+    src/engine/CollisionSystem.cpp
     src/game/Player.cpp
     src/game/Enemy.cpp
+    src/game/PlayerAttack.cpp
 )
 
 # Create executable

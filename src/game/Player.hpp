@@ -10,22 +10,32 @@
 #include "engine/Entity.hpp"
 #include "engine/Input.hpp"
 
+class EntityManager;
+
 class Player : public Entity {
 public:
     Player(float startX, float startY, void* texture);
 
     void update(float dt) override;
     void render(SpriteBatch& batch) override;
+    void onCollision(Entity* other) override;
 
     void setInput(Input* input) { this->input = input; }
+    void setEntityManager(EntityManager* em) { entityManager = em; }
+
+    void takeDamage(int amount);
 
 private:
     Input* input = nullptr;
+    EntityManager* entityManager = nullptr;
     void* texture = nullptr;
 
-    float speed = 100.0f;  // pixels per second
+    float speed = 60.0f;  // pixels per second
 
-    // State
+    // Combat
+    int health = 3;
+    float invincibleTimer = 0.0f;
     bool attacking = false;
     float attackTimer = 0.0f;
+    bool facingRight = true;
 };

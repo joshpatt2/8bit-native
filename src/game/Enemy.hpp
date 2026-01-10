@@ -15,6 +15,7 @@ public:
 
     void update(float dt) override;
     void render(SpriteBatch& batch) override;
+    void onCollision(Entity* other) override;
 
     void setTarget(Entity* target) { this->target = target; }
 

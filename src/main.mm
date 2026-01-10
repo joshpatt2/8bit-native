@@ -17,6 +17,7 @@
 #include "engine/SpriteBatch.hpp"
 #include "engine/EntityManager.hpp"
 #include "engine/Input.hpp"
+#include "engine/CollisionSystem.hpp"
 #include "game/Player.hpp"
 #include "game/Enemy.hpp"
 #include <cstdlib>
@@ -108,6 +109,7 @@ int main(int argc, char* argv[]) {
     // Spawn player at center
     Player* player = entities.spawn<Player>(0.0f, 0.0f, (__bridge void*)testTexture.getTexture());
     player->setInput(&input);
+    player->setEntityManager(&entities);
 
     // Spawn 5 enemies at random positions
     for (int i = 0; i < 5; i++) {
@@ -121,6 +123,9 @@ int main(int argc, char* argv[]) {
 
     // Create frame timer targeting 60 FPS
     FrameTimer timer(60);
+
+    // Create collision system
+    CollisionSystem collisions;
 
     // Main loop
     int frameCount = 0;
@@ -140,6 +145,12 @@ int main(int argc, char* argv[]) {
 
         // Update all entities
         entities.update(dt);
+
+        // Check collisions
+        collisions.checkCollisions(entities);
+
+        // Clean up destroyed entities
+        entities.cleanup();
 
         // Render frame
         renderer.beginFrame();
