@@ -11,16 +11,18 @@
 #import <SDL2/SDL_metal.h>
 
 #include "Renderer.hpp"
+#include "SpriteBatch.hpp"
+#include "Shader.hpp"
 #include <iostream>
 #include <simd/simd.h>
 
-// Vertex structure for sprite quads
+// Vertex structure for sprite quads (legacy single-sprite API)
 struct Vertex {
     float x, y;      // Position
     float u, v;      // Texture coordinates
 };
 
-// Uniforms for MVP matrix
+// Uniforms for MVP matrix (legacy single-sprite API)
 struct Uniforms {
     simd::float4x4 mvp;
 };
@@ -41,7 +43,7 @@ struct RendererImpl {
     // Current frame's drawable - the texture we render to
     id<CAMetalDrawable> currentDrawable = nil;
 
-    // Vertex buffer for sprite quad
+    // Vertex buffer for sprite quad (legacy single-sprite API)
     id<MTLBuffer> vertexBuffer = nil;
 
     // Sampler state for texture sampling
@@ -55,15 +57,22 @@ struct RendererImpl {
 
     // Clear color (NES dark blue by default)
     MTLClearColor clearColor = MTLClearColorMake(0.0, 0.0, 0.545, 1.0);
+
+    // Sprite batch shader (needs to persist)
+    Shader* batchShader = nullptr;
 };
 
 Renderer::Renderer() {
     impl = new RendererImpl();
+    spriteBatch = new SpriteBatch();
 }
 
 Renderer::~Renderer() {
     shutdown();
+    delete spriteBatch;
+    spriteBatch = nullptr;
     delete impl;
+    impl = nullptr;
 }
 
 bool Renderer::init(SDL_Window* window) {
@@ -107,6 +116,7 @@ bool Renderer::init(SDL_Window* window) {
     }
 
     // Create vertex buffer for sprite quad (2 triangles, 6 vertices)
+    // This is for the legacy single-sprite API
     Vertex vertices[] = {
         // Triangle 1
         {-0.5f, -0.5f,  0.0f, 1.0f},  // Bottom-left
@@ -117,27 +127,48 @@ bool Renderer::init(SDL_Window* window) {
         { 0.5f,  0.5f,  1.0f, 0.0f},  // Top-right
         {-0.5f,  0.5f,  0.0f, 0.0f},  // Top-left
     };
-    
+
     impl->vertexBuffer = [impl->device newBufferWithBytes:vertices
                                                     length:sizeof(vertices)
                                                    options:MTLResourceStorageModeShared];
-    
+
     // Create sampler state (nearest neighbor for pixel art)
     MTLSamplerDescriptor* samplerDescriptor = [[MTLSamplerDescriptor alloc] init];
     samplerDescriptor.minFilter = MTLSamplerMinMagFilterNearest;
     samplerDescriptor.magFilter = MTLSamplerMinMagFilterNearest;
     samplerDescriptor.sAddressMode = MTLSamplerAddressModeClampToEdge;
     samplerDescriptor.tAddressMode = MTLSamplerAddressModeClampToEdge;
-    impl->samplerState = [impl->device newSamplerStateWithDescriptor:samplerDescriptor];
+    impl->batchShader = new Shader();
+    if (!impl->batchShader->load(impl->device, "shaders/sprite_batch.metal")) {
+        std::cerr << "Failed to load sprite_batch shader" << std::endl;
+        return false;
+    }
+
+    // Initialize sprite batch
+    if (!spriteBatch->init((__bridge void*)impl->device, 
+                           (__bridge void*)impl->batchShader->getPipelineState(),                       10000)) {
+        std::cerr << "Failed to initialize sprite batch" << std::endl;
+        return false;
+    }
 
     std::cout << "Metal initialized successfully!" << std::endl;
     return true;
 }
 
 void Renderer::shutdown() {
+    // Shutdown sprite batch first
+    if (spriteBatch) {
+        spriteBatch->shutdown();
+    }
+
     // Release Metal objects
     // ARC handles most cleanup, but we nil them to be explicit
     if (impl) {
+        if (impl->batchShader) {
+            impl->batchShader->shutdown();
+            delete impl->batchShader;
+            impl->batchShader = nullptr;
+        }
         impl->commandQueue = nil;
         impl->device = nil;
         impl->metalLayer = nil;
@@ -173,11 +204,21 @@ void Renderer::beginFrame() {
 
     // Create a render command encoder - this is where we issue draw calls
     impl->renderEncoder = [impl->commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
+
+    // Begin sprite batch for this frame
+    if (spriteBatch) {
+        spriteBatch->begin();
+    }
 }
 
 void Renderer::endFrame() {
     if (!impl->currentDrawable || !impl->renderEncoder || !impl->commandBuffer) {
         return;
+    }
+
+    // Flush sprite batch before ending frame
+    if (spriteBatch) {
+        spriteBatch->end((__bridge void*)impl->renderEncoder);
     }
 
     // End encoding - we're done with this render pass
@@ -254,4 +295,12 @@ void Renderer::setWindowTitle(SDL_Window* window, float fps) {
     char title[64];
     snprintf(title, sizeof(title), "8-Bit Native Engine | %.1f FPS", fps);
     SDL_SetWindowTitle(window, title);
+}
+
+SpriteBatch* Renderer::getSpriteBatch() {
+    return spriteBatch;
+}
+
+void* Renderer::getRenderEncoder() {
+    return (__bridge void*)impl->renderEncoder;
 }

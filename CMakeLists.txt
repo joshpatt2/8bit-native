@@ -23,6 +23,7 @@ set(SOURCES
     src/engine/Shader.mm
     src/engine/Texture.mm
     src/engine/FrameTimer.cpp
+    src/engine/SpriteBatch.mm
 )
 
 # Create executable

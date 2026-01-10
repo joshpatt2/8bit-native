@@ -14,6 +14,10 @@
 #include "engine/Shader.hpp"
 #include "engine/Texture.hpp"
 #include "engine/FrameTimer.hpp"
+#include "engine/SpriteBatch.hpp"
+#include <vector>
+#include <cstdlib>
+#include <ctime>
 
 // NES screen dimensions (scaled up 3x for visibility)
 constexpr int NES_WIDTH = 256;
@@ -22,7 +26,21 @@ constexpr int SCALE = 3;
 constexpr int WINDOW_WIDTH = NES_WIDTH * SCALE;
 constexpr int WINDOW_HEIGHT = NES_HEIGHT * SCALE;
 
+// Test sprite for batching stress test
+struct TestSprite {
+    float x, y;       // Position
+    float vx, vy;     // Velocity
+};
+
+// Random float helper
+float randomFloat(float min, float max) {
+    return min + (static_cast<float>(rand()) / RAND_MAX) * (max - min);
+}
+
 int main(int argc, char* argv[]) {
+    // Seed random number generator
+    srand(static_cast<unsigned>(time(nullptr)));
+    
     // Initialize SDL with video subsystem
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cerr << "SDL_Init failed: " << SDL_GetError() << std::endl;
@@ -83,6 +101,22 @@ int main(int argc, char* argv[]) {
     std::cout << "Window: " << WINDOW_WIDTH << "x" << WINDOW_HEIGHT << std::endl;
     std::cout << "Press ESC or close window to exit." << std::endl;
 
+    // Get sprite batch from renderer
+    SpriteBatch* batch = renderer.getSpriteBatch();
+
+    // Create 500 bouncing sprites for stress test
+    const int SPRITE_COUNT = 500;
+    std::vector<TestSprite> sprites(SPRITE_COUNT);
+    
+    std::cout << "Spawning " << SPRITE_COUNT << " bouncing sprites..." << std::endl;
+    
+    for (auto& s : sprites) {
+        s.x = randomFloat(-100.0f, 100.0f);
+        s.y = randomFloat(-100.0f, 100.0f);
+        s.vx = randomFloat(-80.0f, 80.0f);  // pixels per second
+        s.vy = randomFloat(-80.0f, 80.0f);
+    }
+
     // Create frame timer targeting 60 FPS
     FrameTimer timer(60);
 
@@ -113,16 +147,27 @@ int main(int argc, char* argv[]) {
             renderer.setWindowTitle(window, timer.getFPS());
         }
 
+        // Update all sprites (frame-independent movement with delta time)
+        for (auto& s : sprites) {
+            s.x += s.vx * dt;
+            s.y += s.vy * dt;
+
+            // Bounce off edges (NES coordinates: -128 to 128, -120 to 120)
+            if (s.x < -120.0f || s.x > 120.0f) s.vx *= -1.0f;
+            if (s.y < -110.0f || s.y > 110.0f) s.vy *= -1.0f;
+        }
+
         // Render frame
         renderer.beginFrame();
         
-        // Draw test sprite in center of screen (0, 0) with 32x32 size
-        renderer.drawSprite(
-            (__bridge void*)testTexture.getTexture(),
-            (__bridge void*)spriteShader.getPipelineState(),
-            0.0f, 0.0f,  // Center position
-            32.0f, 32.0f // Size
-        );
+        // Draw all 500 sprites using sprite batch (ONE draw call)
+        for (const auto& s : sprites) {
+            batch->draw(
+                (__bridge void*)testTexture.getTexture(),
+                s.x, s.y,
+                16.0f, 16.0f  // 16x16 sprite size
+            );
+        }
         
         renderer.endFrame();
 

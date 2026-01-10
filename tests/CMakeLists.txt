@@ -5,6 +5,7 @@ set(ENGINE_SOURCES
     ../src/engine/Renderer.mm
     ../src/engine/Shader.mm
     ../src/engine/Texture.mm
+    ../src/engine/SpriteBatch.mm
 )
 
 # Test executables

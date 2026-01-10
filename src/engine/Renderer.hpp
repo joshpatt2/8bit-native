@@ -18,6 +18,7 @@ struct SDL_Window;
 // Forward declare Metal types (actual types are Objective-C)
 // We use void* here and cast in the .mm file
 struct RendererImpl;
+class SpriteBatch;
 
 class Renderer {
 public:
@@ -49,8 +50,15 @@ public:
     // Set window title (for FPS display)
     void setWindowTitle(SDL_Window* window, float fps);
 
+    // Get sprite batch for efficient rendering
+    SpriteBatch* getSpriteBatch();
+
+    // Get render encoder (for sprite batch to submit draw calls)
+    void* getRenderEncoder();
+
 private:
     // Pointer to implementation (PIMPL pattern)
     // Hides Objective-C types from C++ header
     RendererImpl* impl = nullptr;
+    SpriteBatch* spriteBatch = nullptr;
 };
