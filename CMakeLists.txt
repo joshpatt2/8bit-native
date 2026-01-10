@@ -22,6 +22,7 @@ set(SOURCES
     src/engine/Renderer.mm
     src/engine/Shader.mm
     src/engine/Texture.mm
+    src/engine/FrameTimer.cpp
 )
 
 # Create executable

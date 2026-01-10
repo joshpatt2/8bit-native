@@ -249,3 +249,9 @@ void Renderer::drawSprite(void* texture, void* pipelineState, float x, float y, 
 void* Renderer::getDevice() {
     return (__bridge void*)impl->device;
 }
+
+void Renderer::setWindowTitle(SDL_Window* window, float fps) {
+    char title[64];
+    snprintf(title, sizeof(title), "8-Bit Native Engine | %.1f FPS", fps);
+    SDL_SetWindowTitle(window, title);
+}

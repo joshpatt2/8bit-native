@@ -13,6 +13,7 @@
 #include "engine/Renderer.hpp"
 #include "engine/Shader.hpp"
 #include "engine/Texture.hpp"
+#include "engine/FrameTimer.hpp"
 
 // NES screen dimensions (scaled up 3x for visibility)
 constexpr int NES_WIDTH = 256;
@@ -82,11 +83,19 @@ int main(int argc, char* argv[]) {
     std::cout << "Window: " << WINDOW_WIDTH << "x" << WINDOW_HEIGHT << std::endl;
     std::cout << "Press ESC or close window to exit." << std::endl;
 
+    // Create frame timer targeting 60 FPS
+    FrameTimer timer(60);
+
     // Main loop
     bool running = true;
     SDL_Event event;
+    int frameCount = 0;
 
     while (running) {
+        // Start frame timing
+        timer.tick();
+        float dt = timer.getDeltaTime();
+
         // Handle events
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
@@ -97,6 +106,11 @@ int main(int argc, char* argv[]) {
                     running = false;
                 }
             }
+        }
+
+        // Update window title with FPS every 30 frames
+        if (++frameCount % 30 == 0) {
+            renderer.setWindowTitle(window, timer.getFPS());
         }
 
         // Render frame
@@ -111,6 +125,9 @@ int main(int argc, char* argv[]) {
         );
         
         renderer.endFrame();
+
+        // Sleep to maintain target FPS and reduce CPU usage
+        timer.sync();
     }
 
     // Cleanup

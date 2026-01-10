@@ -46,6 +46,9 @@ public:
     // Get the Metal device (for creating resources)
     void* getDevice();
 
+    // Set window title (for FPS display)
+    void setWindowTitle(SDL_Window* window, float fps);
+
 private:
     // Pointer to implementation (PIMPL pattern)
     // Hides Objective-C types from C++ header
