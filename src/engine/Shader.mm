@@ -63,7 +63,7 @@ bool Shader::load(id<MTLDevice> device, const std::string& filename) {
     MTLRenderPipelineDescriptor* pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
     pipelineDescriptor.vertexFunction = vertexFunction;
     pipelineDescriptor.fragmentFunction = fragmentFunction;
-    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+    pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
     
     // Enable alpha blending
     pipelineDescriptor.colorAttachments[0].blendingEnabled = YES;
