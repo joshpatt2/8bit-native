@@ -69,10 +69,10 @@ private:
     if ((a) != (b)) throw AssertionFailed(message)
 
 #define ASSERT_NOT_NIL(ptr, message) \
-    if ((ptr) == nullptr || (ptr) == nil) throw AssertionFailed(message)
+    if ((ptr) == nullptr) throw AssertionFailed(message)
 
 #define ASSERT_NIL(ptr, message) \
-    if ((ptr) != nullptr && (ptr) != nil) throw AssertionFailed(message)
+    if ((ptr) != nullptr) throw AssertionFailed(message)
 
 #define ASSERT_NO_THROW(code, message) \
     try { code; } catch (...) { throw AssertionFailed(message); }
