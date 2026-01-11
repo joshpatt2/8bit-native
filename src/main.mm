@@ -197,27 +197,9 @@ int main(int argc, char* argv[]) {
 
         // Render frame
         renderer.beginFrame();
+        batch->begin();
         
-        // Render all entities (they don't do rendering for pong, just physics)
-        entities.render(*batch);
-        
-        // FLUSH BEFORE CHANGING TEXTURES - end batch to avoid font texture mixing
-        batch->end(renderer.getRenderEncoder());
-        batch->begin();  // Start new batch for paddles
-        
-        // Draw paddles and ball as ALL RED solid rectangles
-        batch->draw((__bridge void*)whiteSquare.getTexture(), leftPaddle->x, leftPaddle->y, 
-                    leftPaddle->width, leftPaddle->height, 1.0f, 0.0f, 0.0f, 1.0f);
-        batch->draw((__bridge void*)whiteSquare.getTexture(), rightPaddle->x, rightPaddle->y, 
-                    rightPaddle->width, rightPaddle->height, 1.0f, 0.0f, 0.0f, 1.0f);
-        batch->draw((__bridge void*)whiteSquare.getTexture(), ball->x, ball->y, 
-                    ball->width, ball->height, 1.0f, 0.0f, 0.0f, 1.0f);
-        
-        // FLUSH AGAIN before text to prevent paddle texture from affecting scores
-        batch->end(renderer.getRenderEncoder());
-        batch->begin();  // Start new batch for text
-        
-        // Render scores
+        // Render scores FIRST (font8x8 texture)
         std::string leftScoreText = std::to_string(leftScore);
         std::string rightScoreText = std::to_string(rightScore);
         textRenderer.drawTextScaled(*batch, -80.0f, 90.0f, leftScoreText, 3.0f, 1.0f, 1.0f, 1.0f);
@@ -232,6 +214,20 @@ int main(int argc, char* argv[]) {
             }
         }
         
+        // FLUSH TEXT BATCH before switching to white_square texture
+        batch->end(renderer.getRenderEncoder());
+        batch->begin();
+        
+        // NOW draw paddles and ball (white_square texture)
+        batch->draw((__bridge void*)whiteSquare.getTexture(), leftPaddle->x, leftPaddle->y, 
+                    leftPaddle->width, leftPaddle->height, 1.0f, 0.0f, 0.0f, 1.0f);
+        batch->draw((__bridge void*)whiteSquare.getTexture(), rightPaddle->x, rightPaddle->y, 
+                    rightPaddle->width, rightPaddle->height, 1.0f, 0.0f, 0.0f, 1.0f);
+        batch->draw((__bridge void*)whiteSquare.getTexture(), ball->x, ball->y, 
+                    ball->width, ball->height, 1.0f, 0.0f, 0.0f, 1.0f);
+        
+        // Flush all queued sprites to GPU
+        batch->end(renderer.getRenderEncoder());
         renderer.endFrame();
 
         // Sleep to maintain target FPS and reduce CPU usage

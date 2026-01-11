@@ -22,6 +22,7 @@ set(ENGINE_UNIT_SOURCES
 add_executable(texture-tests TextureTests.mm ${ENGINE_SOURCES})
 add_executable(shader-tests ShaderTests.mm ${ENGINE_SOURCES})
 add_executable(renderer-tests RendererTests.mm ${ENGINE_SOURCES})
+add_executable(spritebatch-tests SpriteBatchTests.mm ${ENGINE_SOURCES})
 
 # Test executables (Unit tests - no Metal)
 add_executable(frametimer-tests FrameTimerTests.cpp ../src/engine/FrameTimer.cpp)
@@ -36,7 +37,7 @@ add_executable(collision-tests CollisionSystemTests.cpp
 add_executable(audio-tests AudioTests.cpp ../src/engine/Audio.cpp)
 
 # Configure each test executable
-foreach(test_target texture-tests shader-tests renderer-tests)
+foreach(test_target texture-tests shader-tests renderer-tests spritebatch-tests)
     target_include_directories(${test_target} PRIVATE
         ${CMAKE_SOURCE_DIR}/src
         ${SDL2_INCLUDE_DIRS}
