@@ -52,9 +52,8 @@ set(SOURCES
     src/engine/Animator.cpp
     src/engine/Audio.cpp
     src/engine/TextRenderer.mm
-    src/game/Player.cpp
-    src/game/Enemy.cpp
-    src/game/PlayerAttack.cpp
+    src/game/Paddle.cpp
+    src/game/Ball.cpp
 )
 
 # Create executable

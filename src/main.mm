@@ -20,8 +20,8 @@
 #include "engine/CollisionSystem.hpp"
 #include "engine/Audio.hpp"
 #include "engine/TextRenderer.hpp"
-#include "game/Player.hpp"
-#include "game/Enemy.hpp"
+#include "game/Paddle.hpp"
+#include "game/Ball.hpp"
 #include <cstdlib>
 #include <ctime>
 
@@ -86,10 +86,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Load test texture
-    Texture testTexture;
-    if (!testTexture.load(device, "assets/sprites/test.png")) {
-        std::cerr << "Failed to load test texture" << std::endl;
+    // Load white square texture for Pong rectangles
+    Texture whiteSquare;
+    if (!whiteSquare.load(device, "assets/sprites/white_square.png")) {
+        std::cerr << "Failed to load white square texture" << std::endl;
         spriteShader.shutdown();
         renderer.shutdown();
         SDL_DestroyWindow(window);
@@ -97,9 +97,9 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::cout << "8-Bit Native Engine started!" << std::endl;
+    std::cout << "8-Bit Native Engine - PONG" << std::endl;
     std::cout << "Window: " << WINDOW_WIDTH << "x" << WINDOW_HEIGHT << std::endl;
-    std::cout << "Use arrow keys to move, SPACE to attack, ESC to quit." << std::endl;
+    std::cout << "Use arrow keys to move paddle, ESC to quit." << std::endl;
 
     // Initialize audio system
     Audio audio;
@@ -107,11 +107,9 @@ int main(int argc, char* argv[]) {
     if (!audio.init()) {
         std::cerr << "Audio init failed (continuing without sound)" << std::endl;
     } else {
-        // Load sound effects
-        sndAttack = audio.loadSound("assets/audio/attack.wav");
-        sndHit = audio.loadSound("assets/audio/hit.wav");
-        sndEnemyDeath = audio.loadSound("assets/audio/enemy_death.wav");
-        sndPlayerHurt = audio.loadSound("assets/audio/player_hurt.wav");
+        // Load sound effects (attack = paddle hit, hit = wall bounce)
+        audio.loadSound("assets/audio/attack.wav");
+        audio.loadSound("assets/audio/hit.wav");
     }
 
     // Initialize text renderer
@@ -127,30 +125,28 @@ int main(int argc, char* argv[]) {
     // Get sprite batch from renderer
     SpriteBatch* batch = renderer.getSpriteBatch();
 
-    // Spawn player at center
-    Player* player = entities.spawn<Player>(0.0f, 0.0f, (__bridge void*)testTexture.getTexture());
-    player->setInput(&input);
-    player->setEntityManager(&entities);
+    // Create Pong game objects
+    Paddle* leftPaddle = entities.spawn<Paddle>(-115.0f, true);   // Player paddle (left)
+    leftPaddle->setInput(&input);
 
-    std::cout << "Player spawned! Enemies arrive in 5 seconds..." << std::endl;
+    Paddle* rightPaddle = entities.spawn<Paddle>(115.0f, false);  // AI paddle (right)
+
+    Ball* ball = entities.spawn<Ball>();
+    ball->setPaddles(leftPaddle, rightPaddle);
+    
+    // AI paddle tracks the ball
+    rightPaddle->setAITarget(ball);
+
+    std::cout << "PONG ready! First to 10 wins." << std::endl;
 
     // Game state
-    int score = 0;
+    int leftScore = 0;
+    int rightScore = 0;
     bool gameOver = false;
-
-    // Enemy spawn timing
-    float gameTime = 0.0f;
-    const float ENEMY_SPAWN_DELAY = 5.0f;  // 5 seconds before enemies appear
-    const float ENEMY_SPAWN_INTERVAL = 3.0f; // New enemy every 3 seconds after that
-    float nextEnemySpawn = ENEMY_SPAWN_DELAY;
-    int enemiesSpawned = 0;
-    const int MAX_ENEMIES = 10;
+    const int WINNING_SCORE = 10;
 
     // Create frame timer targeting 60 FPS
     FrameTimer timer(60);
-
-    // Create collision system
-    CollisionSystem collisions;
 
     // Main loop
     int frameCount = 0;
@@ -168,76 +164,64 @@ int main(int argc, char* argv[]) {
         // Update input (clears per-frame state)
         input.update();
 
-        // Track game time and spawn enemies
-        gameTime += dt;
-        if (gameTime >= nextEnemySpawn && enemiesSpawned < MAX_ENEMIES) {
-            // Spawn enemy at random edge position
-            float ex, ey;
-            if (rand() % 2 == 0) {
-                // Spawn on left or right edge
-                ex = (rand() % 2 == 0) ? -120.0f : 120.0f;
-                ey = randomFloat(-100.0f, 100.0f);
-            } else {
-                // Spawn on top or bottom edge
-                ex = randomFloat(-100.0f, 100.0f);
-                ey = (rand() % 2 == 0) ? -110.0f : 110.0f;
-            }
-
-            Enemy* enemy = entities.spawn<Enemy>(ex, ey, (__bridge void*)testTexture.getTexture());
-            enemy->setTarget(player);
-            enemiesSpawned++;
-
-            std::cout << "Enemy " << enemiesSpawned << " spawned! (" << (MAX_ENEMIES - enemiesSpawned) << " more coming)" << std::endl;
-
-            nextEnemySpawn = gameTime + ENEMY_SPAWN_INTERVAL;
-        }
-
         // Update all entities
         entities.update(dt);
 
-        // Check collisions
-        collisions.checkCollisions(entities);
-
-        // Check for player death
-        if (!player->isAlive() && !gameOver) {
-            gameOver = true;
-            std::cout << "GAME OVER! Final score: " << score << std::endl;
+        // Check for scoring (ball goes off screen)
+        if (!gameOver && ball->isActive()) {
+            if (ball->x < -130.0f) {
+                // Ball went off left edge - right player scores
+                rightScore++;
+                std::cout << "SCORE! Left: " << leftScore << " - Right: " << rightScore << std::endl;
+                ball->reset();
+                
+                if (rightScore >= WINNING_SCORE) {
+                    gameOver = true;
+                    std::cout << "GAME OVER! AI WINS!" << std::endl;
+                }
+            } else if (ball->x > 130.0f) {
+                // Ball went off right edge - left player scores
+                leftScore++;
+                std::cout << "SCORE! Left: " << leftScore << " - Right: " << rightScore << std::endl;
+                ball->reset();
+                
+                if (leftScore >= WINNING_SCORE) {
+                    gameOver = true;
+                    std::cout << "GAME OVER! PLAYER WINS!" << std::endl;
+                }
+            }
         }
 
-        // Track score from enemy kills
-        size_t enemyCountBefore = entities.count();
-        
-        // Clean up destroyed entities
+        // Clean up destroyed entities (none in Pong, but keep for consistency)
         entities.cleanup();
-        
-        size_t enemyCountAfter = entities.count();
-        int enemiesKilled = (int)(enemyCountBefore - enemyCountAfter);
-        if (enemiesKilled > 0 && !gameOver) {
-            score += enemiesKilled;
-        }
 
         // Render frame
         renderer.beginFrame();
         
-        // Render all entities (dereference batch pointer)
+        // Render all entities (they don't do rendering for pong, just physics)
         entities.render(*batch);
         
-        // Render UI text
-        if (player->isAlive()) {
-            // Health display (top-left)
-            std::string healthText = "HP:" + std::to_string(player->getHealth());
-            textRenderer.drawText(*batch, -120.0f, 100.0f, healthText, 1.0f, 0.3f, 0.3f);
-            
-            // Score display (top-right)
-            std::string scoreText = "SCORE:" + std::to_string(score);
-            textRenderer.drawText(*batch, 40.0f, 100.0f, scoreText, 1.0f, 1.0f, 1.0f);
-        }
+        // Draw paddles and ball directly as white rectangles
+        batch->draw((__bridge void*)whiteSquare.getTexture(), leftPaddle->x, leftPaddle->y, 
+                    leftPaddle->width, leftPaddle->height, 1.0f, 1.0f, 1.0f, 1.0f);
+        batch->draw((__bridge void*)whiteSquare.getTexture(), rightPaddle->x, rightPaddle->y, 
+                    rightPaddle->width, rightPaddle->height, 1.0f, 1.0f, 1.0f, 1.0f);
+        batch->draw((__bridge void*)whiteSquare.getTexture(), ball->x, ball->y, 
+                    ball->width, ball->height, 1.0f, 1.0f, 1.0f, 1.0f);
         
-        // Game over message (center, scaled 2x)
+        // Render scores
+        std::string leftScoreText = std::to_string(leftScore);
+        std::string rightScoreText = std::to_string(rightScore);
+        textRenderer.drawTextScaled(*batch, -80.0f, 90.0f, leftScoreText, 3.0f, 1.0f, 1.0f, 1.0f);
+        textRenderer.drawTextScaled(*batch, 60.0f, 90.0f, rightScoreText, 3.0f, 1.0f, 1.0f, 1.0f);
+        
+        // Game over message
         if (gameOver) {
-            textRenderer.drawTextScaled(*batch, -60.0f, 0.0f, "GAME OVER", 2.0f, 1.0f, 0.2f, 0.2f);
-            std::string finalScore = "SCORE " + std::to_string(score);
-            textRenderer.drawTextScaled(*batch, -50.0f, -20.0f, finalScore, 1.5f, 1.0f, 1.0f, 0.3f);
+            if (leftScore >= WINNING_SCORE) {
+                textRenderer.drawTextScaled(*batch, -56.0f, 0.0f, "YOU WIN", 3.0f, 0.3f, 1.0f, 0.3f);
+            } else {
+                textRenderer.drawTextScaled(*batch, -56.0f, 0.0f, "AI WINS", 3.0f, 1.0f, 0.3f, 0.3f);
+            }
         }
         
         renderer.endFrame();
@@ -248,7 +232,7 @@ int main(int argc, char* argv[]) {
 
     // Cleanup
     audio.shutdown();
-    testTexture.shutdown();
+    whiteSquare.shutdown();
     spriteShader.shutdown();
     renderer.shutdown();
     SDL_DestroyWindow(window);
