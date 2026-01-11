@@ -111,15 +111,15 @@ int main(int argc, char* argv[]) {
     player->setInput(&input);
     player->setEntityManager(&entities);
 
-    // Spawn 5 enemies at random positions
-    for (int i = 0; i < 5; i++) {
-        float ex = randomFloat(-100.0f, 100.0f);
-        float ey = randomFloat(-100.0f, 100.0f);
-        Enemy* enemy = entities.spawn<Enemy>(ex, ey, (__bridge void*)testTexture.getTexture());
-        enemy->setTarget(player);
-    }
+    std::cout << "Player spawned! Enemies arrive in 5 seconds..." << std::endl;
 
-    std::cout << "Spawned " << entities.count() << " entities (1 player, 5 enemies)" << std::endl;
+    // Enemy spawn timing
+    float gameTime = 0.0f;
+    const float ENEMY_SPAWN_DELAY = 5.0f;  // 5 seconds before enemies appear
+    const float ENEMY_SPAWN_INTERVAL = 3.0f; // New enemy every 3 seconds after that
+    float nextEnemySpawn = ENEMY_SPAWN_DELAY;
+    int enemiesSpawned = 0;
+    const int MAX_ENEMIES = 10;
 
     // Create frame timer targeting 60 FPS
     FrameTimer timer(60);
@@ -142,6 +142,30 @@ int main(int argc, char* argv[]) {
 
         // Update input (clears per-frame state)
         input.update();
+
+        // Track game time and spawn enemies
+        gameTime += dt;
+        if (gameTime >= nextEnemySpawn && enemiesSpawned < MAX_ENEMIES) {
+            // Spawn enemy at random edge position
+            float ex, ey;
+            if (rand() % 2 == 0) {
+                // Spawn on left or right edge
+                ex = (rand() % 2 == 0) ? -120.0f : 120.0f;
+                ey = randomFloat(-100.0f, 100.0f);
+            } else {
+                // Spawn on top or bottom edge
+                ex = randomFloat(-100.0f, 100.0f);
+                ey = (rand() % 2 == 0) ? -110.0f : 110.0f;
+            }
+
+            Enemy* enemy = entities.spawn<Enemy>(ex, ey, (__bridge void*)testTexture.getTexture());
+            enemy->setTarget(player);
+            enemiesSpawned++;
+
+            std::cout << "Enemy " << enemiesSpawned << " spawned! (" << (MAX_ENEMIES - enemiesSpawned) << " more coming)" << std::endl;
+
+            nextEnemySpawn = gameTime + ENEMY_SPAWN_INTERVAL;
+        }
 
         // Update all entities
         entities.update(dt);

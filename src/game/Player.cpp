@@ -18,6 +18,49 @@ Player::Player(float startX, float startY, void* tex)
 
     collisionLayer = Layer::Player;
     collisionMask = static_cast<int>(Layer::Enemy) | static_cast<int>(Layer::EnemyAttack);
+
+    // Create animator and setup animations
+    animator = new Animator();
+    setupAnimations();
+    animator->play("idle");
+}
+
+void Player::setupAnimations() {
+    // For now, all frames use full texture (0,0,1,1) since we only have one sprite
+    // When we have real sprite sheets, update these coordinates
+
+    // Idle animation (2 frames, slow pulse)
+    Animation idle;
+    idle.name = "idle";
+    idle.loop = true;
+    idle.frames = {
+        {0, 0, 1, 1, 0.5f},
+        {0, 0, 1, 1, 0.5f},
+    };
+    animator->addAnimation("idle", idle);
+
+    // Walk animation (4 frames)
+    Animation walk;
+    walk.name = "walk";
+    walk.loop = true;
+    walk.frames = {
+        {0, 0, 1, 1, 0.1f},
+        {0, 0, 1, 1, 0.1f},
+        {0, 0, 1, 1, 0.1f},
+        {0, 0, 1, 1, 0.1f},
+    };
+    animator->addAnimation("walk", walk);
+
+    // Attack animation (3 frames, fast, no loop)
+    Animation attack;
+    attack.name = "attack";
+    attack.loop = false;
+    attack.frames = {
+        {0, 0, 1, 1, 0.05f},  // Wind up
+        {0, 0, 1, 1, 0.1f},   // Strike
+        {0, 0, 1, 1, 0.05f},  // Recovery
+    };
+    animator->addAnimation("attack", attack);
 }
 
 void Player::update(float dt) {
@@ -69,6 +112,18 @@ void Player::update(float dt) {
             attacking = false;
         }
     }
+
+    // Update animation state
+    if (attacking) {
+        animator->play("attack");
+    } else if (std::abs(vx) > 0.1f || std::abs(vy) > 0.1f) {
+        animator->play("walk");
+    } else {
+        animator->play("idle");
+    }
+
+    // Update animator
+    animator->update(dt);
 }
 
 void Player::render(SpriteBatch& batch) {
@@ -77,8 +132,20 @@ void Player::render(SpriteBatch& batch) {
         int frame = static_cast<int>(invincibleTimer * 10.0f);
         if (frame % 2 == 0) return;  // Flicker effect
     }
-    
-    batch.draw(texture, x, y, width, height);
+
+    // Get current animation frame
+    float srcX, srcY, srcW, srcH;
+    animator->getCurrentFrame(srcX, srcY, srcW, srcH);
+
+    // GREEN player with animation frame
+    batch.draw(texture, x, y, width, height,
+               srcX, srcY, srcW, srcH,
+               0.2f, 0.9f, 0.3f, 1.0f);
+}
+
+Player::~Player() {
+    delete animator;
+    animator = nullptr;
 }
 
 void Player::onCollision(Entity* other) {

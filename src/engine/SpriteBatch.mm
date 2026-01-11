@@ -87,13 +87,20 @@ void SpriteBatch::begin() {
 }
 
 void SpriteBatch::draw(void* texture, float x, float y, float width, float height) {
-    // Draw full texture (UV 0-1)
-    draw(texture, x, y, width, height, 0.0f, 0.0f, 1.0f, 1.0f);
+    // Draw full texture (UV 0-1) with white color
+    draw(texture, x, y, width, height, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+void SpriteBatch::draw(void* texture, float x, float y, float width, float height,
+                       float r, float g, float b, float a) {
+    // Draw full texture (UV 0-1) with color
+    draw(texture, x, y, width, height, 0.0f, 0.0f, 1.0f, 1.0f, r, g, b, a);
 }
 
 void SpriteBatch::draw(void* texture,
                        float x, float y, float width, float height,
-                       float srcX, float srcY, float srcW, float srcH) {
+                       float srcX, float srcY, float srcW, float srcH,
+                       float r, float g, float b, float a) {
     if (!m_begun) {
         std::cerr << "SpriteBatch::draw called without begin()" << std::endl;
         return;
@@ -109,12 +116,13 @@ void SpriteBatch::draw(void* texture,
     m_currentTexture = texture;
 
     // Add quad with transformed UVs for sprite sheet support
-    addQuad(x, y, width, height, srcX, srcY, srcX + srcW, srcY + srcH);
+    addQuad(x, y, width, height, srcX, srcY, srcX + srcW, srcY + srcH, r, g, b, a);
     m_spriteCount++;
 }
 
 void SpriteBatch::addQuad(float x, float y, float w, float h,
-                           float u0, float v0, float u1, float v1) {
+                           float u0, float v0, float u1, float v1,
+                           float r, float g, float b, float a) {
     // Calculate quad corners (centered on x, y)
     float left = x - w * 0.5f;
     float right = x + w * 0.5f;
@@ -127,9 +135,6 @@ void SpriteBatch::addQuad(float x, float y, float w, float h,
     float ndcRight = right / 128.0f;
     float ndcTop = top / 120.0f;
     float ndcBottom = bottom / 120.0f;
-
-    // White tint (no color modification)
-    float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
 
     // Two triangles = 6 vertices (CCW winding)
     // Triangle 1: BL, BR, TR

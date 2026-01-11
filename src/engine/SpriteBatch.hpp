@@ -43,10 +43,15 @@ public:
     // Queue a sprite for rendering
     void draw(void* texture, float x, float y, float width, float height);
 
-    // Queue a sprite with source rectangle (for sprite sheets/atlases)
-    void draw(void* texture, 
+    // Queue a sprite with color tint
+    void draw(void* texture, float x, float y, float width, float height,
+              float r, float g, float b, float a);
+
+    // Queue a sprite with source rectangle and color tint
+    void draw(void* texture,
               float x, float y, float width, float height,
-              float srcX, float srcY, float srcW, float srcH);
+              float srcX, float srcY, float srcW, float srcH,
+              float r, float g, float b, float a);
 
     // Flush all queued sprites to GPU (call at end of frame)
     void end(void* encoder);
@@ -60,7 +65,8 @@ public:
 private:
     void flush(void* encoder);
     void addQuad(float x, float y, float w, float h, 
-                 float u0, float v0, float u1, float v1);
+                 float u0, float v0, float u1, float v1,
+                 float r, float g, float b, float a);
 
     void* m_device;           // id<MTLDevice>
     void* m_vertexBuffer;     // id<MTLBuffer>

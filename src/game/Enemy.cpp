@@ -17,6 +17,40 @@ Enemy::Enemy(float startX, float startY, void* tex)
 
     collisionLayer = Layer::Enemy;
     collisionMask = static_cast<int>(Layer::Player) | static_cast<int>(Layer::PlayerAttack);
+
+    // Create animator and setup animations
+    animator = new Animator();
+    setupAnimations();
+    animator->play("idle");
+}
+
+Enemy::~Enemy() {
+    delete animator;
+    animator = nullptr;
+}
+
+void Enemy::setupAnimations() {
+    // Idle animation (2 frames, slow)
+    Animation idle;
+    idle.name = "idle";
+    idle.loop = true;
+    idle.frames = {
+        {0, 0, 1, 1, 0.6f},
+        {0, 0, 1, 1, 0.6f},
+    };
+    animator->addAnimation("idle", idle);
+
+    // Chase/walk animation (4 frames, faster)
+    Animation chase;
+    chase.name = "chase";
+    chase.loop = true;
+    chase.frames = {
+        {0, 0, 1, 1, 0.12f},
+        {0, 0, 1, 1, 0.12f},
+        {0, 0, 1, 1, 0.12f},
+        {0, 0, 1, 1, 0.12f},
+    };
+    animator->addAnimation("chase", chase);
 }
 
 void Enemy::update(float dt) {
@@ -58,7 +92,8 @@ void Enemy::update(float dt) {
 }
 
 void Enemy::render(SpriteBatch& batch) {
-    batch.draw(texture, x, y, width, height);
+    // BLUE enemy
+    batch.draw(texture, x, y, width, height, 0.3f, 0.4f, 0.9f, 1.0f);
 }
 
 void Enemy::onCollision(Entity* other) {
