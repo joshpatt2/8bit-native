@@ -51,6 +51,7 @@ set(SOURCES
     src/engine/CollisionSystem.cpp
     src/engine/Animator.cpp
     src/engine/Audio.cpp
+    src/engine/TextRenderer.mm
     src/game/Player.cpp
     src/game/Enemy.cpp
     src/game/PlayerAttack.cpp
@@ -91,8 +92,7 @@ set_source_files_properties(
     src/main.mm
     src/engine/Renderer.mm
     src/engine/Shader.mm
-    src/engine/Texture.mm
-    PROPERTIES COMPILE_FLAGS "-x objective-c++"
+    src/engine/Texture.mm    src/engine/TextRenderer.mm    PROPERTIES COMPILE_FLAGS "-x objective-c++"
 )
 
 # Copy shaders to build directory

@@ -26,6 +26,10 @@ public:
     void setEntityManager(EntityManager* em) { entityManager = em; }
 
     void takeDamage(int amount);
+    
+    // UI accessors
+    int getHealth() const { return health; }
+    bool isAlive() const { return health > 0; }
 
 private:
     void setupAnimations();

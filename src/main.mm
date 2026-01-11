@@ -19,6 +19,7 @@
 #include "engine/Input.hpp"
 #include "engine/CollisionSystem.hpp"
 #include "engine/Audio.hpp"
+#include "engine/TextRenderer.hpp"
 #include "game/Player.hpp"
 #include "game/Enemy.hpp"
 #include <cstdlib>
@@ -113,6 +114,12 @@ int main(int argc, char* argv[]) {
         sndPlayerHurt = audio.loadSound("assets/audio/player_hurt.wav");
     }
 
+    // Initialize text renderer
+    TextRenderer textRenderer;
+    if (!textRenderer.loadFont(device, "assets/fonts/font8x8.png")) {
+        std::cerr << "Failed to load font (continuing without text)" << std::endl;
+    }
+
     // Create entity manager and input
     EntityManager entities;
     Input input;
@@ -126,6 +133,10 @@ int main(int argc, char* argv[]) {
     player->setEntityManager(&entities);
 
     std::cout << "Player spawned! Enemies arrive in 5 seconds..." << std::endl;
+
+    // Game state
+    int score = 0;
+    bool gameOver = false;
 
     // Enemy spawn timing
     float gameTime = 0.0f;
@@ -187,14 +198,47 @@ int main(int argc, char* argv[]) {
         // Check collisions
         collisions.checkCollisions(entities);
 
+        // Check for player death
+        if (!player->isAlive() && !gameOver) {
+            gameOver = true;
+            std::cout << "GAME OVER! Final score: " << score << std::endl;
+        }
+
+        // Track score from enemy kills
+        size_t enemyCountBefore = entities.count();
+        
         // Clean up destroyed entities
         entities.cleanup();
+        
+        size_t enemyCountAfter = entities.count();
+        int enemiesKilled = (int)(enemyCountBefore - enemyCountAfter);
+        if (enemiesKilled > 0 && !gameOver) {
+            score += enemiesKilled;
+        }
 
         // Render frame
         renderer.beginFrame();
         
         // Render all entities (dereference batch pointer)
         entities.render(*batch);
+        
+        // Render UI text
+        if (player->isAlive()) {
+            // Health display (top-left)
+            std::string healthText = "HP:" + std::to_string(player->getHealth());
+            textRenderer.drawText(*batch, -120.0f, 100.0f, healthText, 1.0f, 0.3f, 0.3f);
+            
+            // Score display (top-right)
+            std::string scoreText = "SCORE:" + std::to_string(score);
+            textRenderer.drawText(*batch, 40.0f, 100.0f, scoreText, 1.0f, 1.0f, 1.0f);
+        }
+        
+        // Game over message (center, scaled 2x)
+        if (gameOver) {
+            textRenderer.drawTextScaled(*batch, -60.0f, 0.0f, "GAME OVER", 2.0f, 1.0f, 0.2f, 0.2f);
+            std::string finalScore = "SCORE " + std::to_string(score);
+            textRenderer.drawTextScaled(*batch, -50.0f, -20.0f, finalScore, 1.5f, 1.0f, 1.0f, 0.3f);
+        }
         
         renderer.endFrame();
 
