@@ -201,13 +201,21 @@ int main(int argc, char* argv[]) {
         // Render all entities (they don't do rendering for pong, just physics)
         entities.render(*batch);
         
-        // Draw paddles and ball directly as white rectangles
+        // FLUSH BEFORE CHANGING TEXTURES - end batch to avoid font texture mixing
+        batch->end(renderer.getRenderEncoder());
+        batch->begin();  // Start new batch for paddles
+        
+        // Draw paddles and ball as ALL RED solid rectangles
         batch->draw((__bridge void*)whiteSquare.getTexture(), leftPaddle->x, leftPaddle->y, 
-                    leftPaddle->width, leftPaddle->height, 1.0f, 1.0f, 1.0f, 1.0f);
+                    leftPaddle->width, leftPaddle->height, 1.0f, 0.0f, 0.0f, 1.0f);
         batch->draw((__bridge void*)whiteSquare.getTexture(), rightPaddle->x, rightPaddle->y, 
-                    rightPaddle->width, rightPaddle->height, 1.0f, 1.0f, 1.0f, 1.0f);
+                    rightPaddle->width, rightPaddle->height, 1.0f, 0.0f, 0.0f, 1.0f);
         batch->draw((__bridge void*)whiteSquare.getTexture(), ball->x, ball->y, 
-                    ball->width, ball->height, 1.0f, 1.0f, 1.0f, 1.0f);
+                    ball->width, ball->height, 1.0f, 0.0f, 0.0f, 1.0f);
+        
+        // FLUSH AGAIN before text to prevent paddle texture from affecting scores
+        batch->end(renderer.getRenderEncoder());
+        batch->begin();  // Start new batch for text
         
         // Render scores
         std::string leftScoreText = std::to_string(leftScore);
