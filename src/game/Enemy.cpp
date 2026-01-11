@@ -5,6 +5,7 @@
 #include "Enemy.hpp"
 #include "Player.hpp"
 #include "engine/SpriteBatch.hpp"
+#include "engine/Audio.hpp"
 #include <cmath>
 
 Enemy::Enemy(float startX, float startY, void* tex)
@@ -89,11 +90,25 @@ void Enemy::update(float dt) {
             // TODO: Attack behavior (later with collision)
             break;
     }
+
+    // Update animation based on state
+    if (state == State::Chase) {
+        animator->play("chase");
+    } else {
+        animator->play("idle");
+    }
+    animator->update(dt);
 }
 
 void Enemy::render(SpriteBatch& batch) {
-    // BLUE enemy
-    batch.draw(texture, x, y, width, height, 0.3f, 0.4f, 0.9f, 1.0f);
+    // Get current animation frame
+    float srcX, srcY, srcW, srcH;
+    animator->getCurrentFrame(srcX, srcY, srcW, srcH);
+
+    // BLUE enemy with animation frame
+    batch.draw(texture, x, y, width, height,
+               srcX, srcY, srcW, srcH,
+               0.3f, 0.4f, 0.9f, 1.0f);
 }
 
 void Enemy::onCollision(Entity* other) {
@@ -106,9 +121,12 @@ void Enemy::onCollision(Entity* other) {
 void Enemy::takeDamage(int amount) {
     health -= amount;
 
-    // TODO: Hit feedback (flash, knockback, particles)
+    // Play hit sound
+    if (g_audio) g_audio->playSound(sndHit);
 
     if (health <= 0) {
+        // Play death sound
+        if (g_audio) g_audio->playSound(sndEnemyDeath);
         destroy();
         // TODO: Death particles, score
     }

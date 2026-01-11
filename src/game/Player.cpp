@@ -6,6 +6,7 @@
 #include "PlayerAttack.hpp"
 #include "engine/SpriteBatch.hpp"
 #include "engine/EntityManager.hpp"
+#include "engine/Audio.hpp"
 #include <algorithm>
 
 Player::Player(float startX, float startY, void* tex)
@@ -99,6 +100,9 @@ void Player::update(float dt) {
         attacking = true;
         attackTimer = 0.15f;
 
+        // Play attack sound
+        if (g_audio) g_audio->playSound(sndAttack);
+
         // Spawn attack hitbox in front of player
         float attackX = x + (facingRight ? 20.0f : -20.0f);
         auto* attack = entityManager->spawn<PlayerAttack>(attackX, y, 0.15f);
@@ -157,6 +161,9 @@ void Player::takeDamage(int amount) {
 
     health -= amount;
     invincibleTimer = 1.0f;  // 1 second invincibility
+
+    // Play hurt sound
+    if (g_audio) g_audio->playSound(sndPlayerHurt);
 
     if (health <= 0) {
         destroy();  // Player dies

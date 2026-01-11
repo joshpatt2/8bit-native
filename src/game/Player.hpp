@@ -9,12 +9,14 @@
 
 #include "engine/Entity.hpp"
 #include "engine/Input.hpp"
+#include "engine/Animation.hpp"
 
 class EntityManager;
 
 class Player : public Entity {
 public:
     Player(float startX, float startY, void* texture);
+    ~Player();
 
     void update(float dt) override;
     void render(SpriteBatch& batch) override;
@@ -26,9 +28,12 @@ public:
     void takeDamage(int amount);
 
 private:
+    void setupAnimations();
+
     Input* input = nullptr;
     EntityManager* entityManager = nullptr;
     void* texture = nullptr;
+    Animator* animator = nullptr;
 
     float speed = 60.0f;  // pixels per second
 

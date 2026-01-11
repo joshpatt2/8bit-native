@@ -18,6 +18,7 @@
 #include "engine/EntityManager.hpp"
 #include "engine/Input.hpp"
 #include "engine/CollisionSystem.hpp"
+#include "engine/Audio.hpp"
 #include "game/Player.hpp"
 #include "game/Enemy.hpp"
 #include <cstdlib>
@@ -39,8 +40,8 @@ int main(int argc, char* argv[]) {
     // Seed random number generator
     srand(static_cast<unsigned>(time(nullptr)));
     
-    // Initialize SDL with video subsystem
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    // Initialize SDL with video and audio subsystems
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
         std::cerr << "SDL_Init failed: " << SDL_GetError() << std::endl;
         return 1;
     }
@@ -98,6 +99,19 @@ int main(int argc, char* argv[]) {
     std::cout << "8-Bit Native Engine started!" << std::endl;
     std::cout << "Window: " << WINDOW_WIDTH << "x" << WINDOW_HEIGHT << std::endl;
     std::cout << "Use arrow keys to move, SPACE to attack, ESC to quit." << std::endl;
+
+    // Initialize audio system
+    Audio audio;
+    g_audio = &audio;
+    if (!audio.init()) {
+        std::cerr << "Audio init failed (continuing without sound)" << std::endl;
+    } else {
+        // Load sound effects
+        sndAttack = audio.loadSound("assets/audio/attack.wav");
+        sndHit = audio.loadSound("assets/audio/hit.wav");
+        sndEnemyDeath = audio.loadSound("assets/audio/enemy_death.wav");
+        sndPlayerHurt = audio.loadSound("assets/audio/player_hurt.wav");
+    }
 
     // Create entity manager and input
     EntityManager entities;
@@ -189,6 +203,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Cleanup
+    audio.shutdown();
     testTexture.shutdown();
     spriteShader.shutdown();
     renderer.shutdown();

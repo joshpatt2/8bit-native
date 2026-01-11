@@ -8,10 +8,12 @@
 #pragma once
 
 #include "engine/Entity.hpp"
+#include "engine/Animation.hpp"
 
 class Enemy : public Entity {
 public:
     Enemy(float startX, float startY, void* texture);
+    ~Enemy();
 
     void update(float dt) override;
     void render(SpriteBatch& batch) override;
@@ -23,8 +25,11 @@ public:
     void takeDamage(int amount);
 
 private:
+    void setupAnimations();
+
     Entity* target = nullptr;  // What to chase (the player)
     void* texture = nullptr;
+    Animator* animator = nullptr;
 
     float speed = 40.0f;  // Slower than player
     int health = 3;
