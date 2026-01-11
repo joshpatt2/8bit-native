@@ -39,13 +39,6 @@ vertex VertexOut sprite_vertex(const device VertexIn* vertices [[buffer(0)]],
 fragment float4 sprite_fragment(VertexOut in [[stage_in]],
                                  texture2d<float> tex [[texture(0)]],
                                  sampler texSampler [[sampler(0)]]) {
-    float4 texColor = tex.sample(texSampler, in.texCoord);
-    
-    // Alpha discard for transparency (0.5 threshold)
-    if (texColor.a < 0.5) {
-        discard_fragment();
-    }
-    
-    // Apply color tint (for future sprite effects)
-    return texColor * in.color;
+    // DEBUG: Force ALL sprites to render as solid magenta
+    return float4(1.0, 0.0, 1.0, 1.0);
 }

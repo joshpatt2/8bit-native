@@ -74,20 +74,24 @@ bool Shader::load(id<MTLDevice> device, const std::string& filename) {
     pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
     pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
     
-    // Set vertex descriptor
+    // Set vertex descriptor (matches SpriteVertex: x, y, u, v, r, g, b, a)
     MTLVertexDescriptor* vertexDescriptor = [[MTLVertexDescriptor alloc] init];
-    // Position (attribute 0)
+    // Position (attribute 0) - float2
     vertexDescriptor.attributes[0].format = MTLVertexFormatFloat2;
     vertexDescriptor.attributes[0].offset = 0;
     vertexDescriptor.attributes[0].bufferIndex = 0;
-    // TexCoord (attribute 1)
+    // TexCoord (attribute 1) - float2
     vertexDescriptor.attributes[1].format = MTLVertexFormatFloat2;
     vertexDescriptor.attributes[1].offset = 2 * sizeof(float);
     vertexDescriptor.attributes[1].bufferIndex = 0;
-    // Layout
-    vertexDescriptor.layouts[0].stride = 4 * sizeof(float);
+    // Color (attribute 2) - float4
+    vertexDescriptor.attributes[2].format = MTLVertexFormatFloat4;
+    vertexDescriptor.attributes[2].offset = 4 * sizeof(float);
+    vertexDescriptor.attributes[2].bufferIndex = 0;
+    // Layout - 8 floats per vertex (32 bytes)
+    vertexDescriptor.layouts[0].stride = 8 * sizeof(float);
     vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-    
+
     pipelineDescriptor.vertexDescriptor = vertexDescriptor;
     
     // Create pipeline state

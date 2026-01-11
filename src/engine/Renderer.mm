@@ -205,9 +205,10 @@ void Renderer::beginFrame() {
     // Create a render command encoder - this is where we issue draw calls
     impl->renderEncoder = [impl->commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
-    // Begin sprite batch for this frame
+    // Begin sprite batch for this frame and set the encoder for mid-batch flushes
     if (spriteBatch) {
         spriteBatch->begin();
+        spriteBatch->setEncoder((__bridge void*)impl->renderEncoder);
     }
 }
 
@@ -303,4 +304,8 @@ SpriteBatch* Renderer::getSpriteBatch() {
 
 void* Renderer::getRenderEncoder() {
     return (__bridge void*)impl->renderEncoder;
+}
+
+void* Renderer::getCurrentDrawable() {
+    return (__bridge void*)impl->currentDrawable;
 }

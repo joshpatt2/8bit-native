@@ -13,9 +13,11 @@ SpriteBatch::SpriteBatch()
     , m_pipelineState(nullptr)
     , m_samplerState(nullptr)
     , m_currentTexture(nullptr)
+    , m_encoder(nullptr)
     , m_maxSprites(0)
     , m_spriteCount(0)
     , m_begun(false)
+    , m_bufferOffset(0)
 {
 }
 
@@ -83,7 +85,13 @@ void SpriteBatch::begin() {
     m_vertices.clear();
     m_spriteCount = 0;
     m_currentTexture = nullptr;
+    m_bufferOffset = 0;  // Reset buffer offset for new frame
+    // Don't reset m_encoder here - it's set by setEncoder() or end()
     m_begun = true;
+}
+
+void SpriteBatch::setEncoder(void* encoder) {
+    m_encoder = encoder;
 }
 
 void SpriteBatch::draw(void* texture, float x, float y, float width, float height) {
@@ -111,8 +119,15 @@ void SpriteBatch::draw(void* texture,
         return;
     }
 
-    // For now: assume all sprites use same texture (single atlas)
-    // Future: flush when texture changes for multi-texture support
+    // Auto-flush if texture changes (multi-texture support)
+    if (m_currentTexture != nullptr && m_currentTexture != texture && m_spriteCount > 0) {
+        // Texture changed, flush current batch
+        std::cout << "SpriteBatch: texture change, flushing " << m_spriteCount << " sprites (old=" << m_currentTexture << " new=" << texture << ")" << std::endl;
+        flush(m_encoder);
+        m_vertices.clear();
+        m_spriteCount = 0;
+    }
+
     m_currentTexture = texture;
 
     // Add quad with transformed UVs for sprite sheet support
@@ -153,6 +168,7 @@ void SpriteBatch::end(void* encoder) {
         return;
     }
 
+    m_encoder = encoder;  // Store encoder for mid-batch flushes
     flush(encoder);
     m_begun = false;
 }
@@ -162,21 +178,36 @@ void SpriteBatch::flush(void* encoder) {
         return;
     }
 
+    if (!encoder) {
+        std::cerr << "SpriteBatch::flush - null encoder! Losing " << m_spriteCount << " sprites" << std::endl;
+        return;
+    }
+
+    static int flushCount = 0;
+    if (++flushCount <= 2) {
+        std::cout << "FLUSH #" << flushCount << ": " << m_spriteCount << " sprites, "
+                  << m_vertices.size() << " verts, tex=" << m_currentTexture << std::endl;
+        // Print ALL vertices
+        for (int i = 0; i < (int)m_vertices.size(); i++) {
+            SpriteVertex& v = m_vertices[i];
+            std::cout << "  v" << i << ": pos=(" << v.x << "," << v.y << ") uv=(" << v.u << "," << v.v
+                      << ") color=(" << v.r << "," << v.g << "," << v.b << "," << v.a << ")" << std::endl;
+        }
+    }
+
     id<MTLRenderCommandEncoder> mtlEncoder = (__bridge id<MTLRenderCommandEncoder>)encoder;
     id<MTLBuffer> mtlBuffer = (__bridge id<MTLBuffer>)m_vertexBuffer;
     id<MTLRenderPipelineState> mtlPipeline = (__bridge id<MTLRenderPipelineState>)m_pipelineState;
     id<MTLSamplerState> mtlSampler = (__bridge id<MTLSamplerState>)m_samplerState;
     id<MTLTexture> mtlTexture = (__bridge id<MTLTexture>)m_currentTexture;
 
-    // Upload vertices to GPU
-    size_t dataSize = m_vertices.size() * sizeof(SpriteVertex);
-    memcpy(mtlBuffer.contents, m_vertices.data(), dataSize);
-
     // Set pipeline state
     [mtlEncoder setRenderPipelineState:mtlPipeline];
 
-    // Bind vertex buffer
-    [mtlEncoder setVertexBuffer:mtlBuffer offset:0 atIndex:0];
+    // Use setVertexBytes for dynamic data - creates temporary buffer per draw call
+    // This avoids the synchronization issue with mid-frame flushes overwriting data
+    size_t dataSize = m_vertices.size() * sizeof(SpriteVertex);
+    [mtlEncoder setVertexBytes:m_vertices.data() length:dataSize atIndex:0];
 
     // Bind texture and sampler
     if (mtlTexture) {
@@ -185,7 +216,26 @@ void SpriteBatch::flush(void* encoder) {
     [mtlEncoder setFragmentSamplerState:mtlSampler atIndex:0];
 
     // ONE DRAW CALL FOR ALL SPRITES
+    static int drawCount = 0;
+    if (++drawCount <= 2) {
+        std::cout << "DRAW CALL #" << drawCount << ": vertexCount=" << m_vertices.size()
+                  << " dataSize=" << dataSize << " bytes"
+                  << " pipeline=" << (mtlPipeline ? "valid" : "NULL")
+                  << " encoder=" << (mtlEncoder ? "valid" : "NULL") << std::endl;
+    }
+
+    // Write to buffer at current offset (avoids overwriting previous flush data)
+    char* bufferPtr = (char*)mtlBuffer.contents + m_bufferOffset;
+    memcpy(bufferPtr, m_vertices.data(), dataSize);
+
+    // Bind buffer with offset
+    [mtlEncoder setVertexBuffer:mtlBuffer offset:m_bufferOffset atIndex:0];
+
+    // Single draw call for all sprites in this batch
     [mtlEncoder drawPrimitives:MTLPrimitiveTypeTriangle
                    vertexStart:0
                    vertexCount:(NSUInteger)m_vertices.size()];
+
+    // Advance offset for next flush
+    m_bufferOffset += dataSize;
 }

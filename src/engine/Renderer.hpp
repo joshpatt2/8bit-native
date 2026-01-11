@@ -56,6 +56,9 @@ public:
     // Get render encoder (for sprite batch to submit draw calls)
     void* getRenderEncoder();
 
+    // Get current drawable (for screenshots - must be called before endFrame presents it)
+    void* getCurrentDrawable();
+
 private:
     // Pointer to implementation (PIMPL pattern)
     // Hides Objective-C types from C++ header

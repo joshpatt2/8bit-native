@@ -20,6 +20,7 @@
 #include "engine/CollisionSystem.hpp"
 #include "engine/Audio.hpp"
 #include "engine/TextRenderer.hpp"
+#include "engine/Screenshot.hpp"
 #include "game/Paddle.hpp"
 #include "game/Ball.hpp"
 #include <cstdlib>
@@ -145,6 +146,10 @@ int main(int argc, char* argv[]) {
     bool gameOver = false;
     const int WINNING_SCORE = 10;
 
+    // Screenshot state
+    float gameTime = 0.0f;
+    bool screenshotTaken3s = false;
+
     // Create frame timer targeting 60 FPS
     FrameTimer timer(60);
 
@@ -163,6 +168,9 @@ int main(int argc, char* argv[]) {
 
         // Update input (clears per-frame state)
         input.update();
+
+        // Track game time
+        gameTime += dt;
 
         // Update all entities
         entities.update(dt);
@@ -195,11 +203,10 @@ int main(int argc, char* argv[]) {
         // Clean up destroyed entities (none in Pong, but keep for consistency)
         entities.cleanup();
 
-        // Render frame
+        // Render frame (beginFrame() calls batch->begin() internally)
         renderer.beginFrame();
-        batch->begin();
-        
-        // Render scores FIRST (font8x8 texture)
+
+        // Render scores first (font texture)
         std::string leftScoreText = std::to_string(leftScore);
         std::string rightScoreText = std::to_string(rightScore);
         textRenderer.drawTextScaled(*batch, -80.0f, 90.0f, leftScoreText, 3.0f, 1.0f, 1.0f, 1.0f);
@@ -214,25 +221,47 @@ int main(int argc, char* argv[]) {
             }
         }
         
-        // FLUSH TEXT BATCH before switching to white_square texture
-        batch->end(renderer.getRenderEncoder());
-        batch->begin();
-        
-        // NOW draw paddles and ball (white_square texture)
-        batch->draw((__bridge void*)whiteSquare.getTexture(), leftPaddle->x, leftPaddle->y, 
+        // Draw paddles and ball (white_square texture)
+        batch->draw((__bridge void*)whiteSquare.getTexture(), leftPaddle->x, leftPaddle->y,
                     leftPaddle->width, leftPaddle->height, 1.0f, 0.0f, 0.0f, 1.0f);
-        batch->draw((__bridge void*)whiteSquare.getTexture(), rightPaddle->x, rightPaddle->y, 
+        batch->draw((__bridge void*)whiteSquare.getTexture(), rightPaddle->x, rightPaddle->y,
                     rightPaddle->width, rightPaddle->height, 1.0f, 0.0f, 0.0f, 1.0f);
-        batch->draw((__bridge void*)whiteSquare.getTexture(), ball->x, ball->y, 
+        batch->draw((__bridge void*)whiteSquare.getTexture(), ball->x, ball->y,
                     ball->width, ball->height, 1.0f, 0.0f, 0.0f, 1.0f);
-        
-        // Flush all queued sprites to GPU
-        batch->end(renderer.getRenderEncoder());
+
+        // Screenshot at ~3 seconds of gameplay
+        if (!screenshotTaken3s && gameTime >= 3.0f) {
+            Screenshot::capture(renderer.getCurrentDrawable(), "screenshot_start.bmp");
+            screenshotTaken3s = true;
+        }
+
+        // Flush remaining sprites to GPU and present
         renderer.endFrame();
 
         // Sleep to maintain target FPS and reduce CPU usage
         timer.sync();
     }
+
+    // Screenshot before exit - need one more frame to capture
+    renderer.beginFrame();
+    // Render current game state
+    textRenderer.drawTextScaled(*batch, -80.0f, 90.0f, std::to_string(leftScore), 3.0f, 1.0f, 1.0f, 1.0f);
+    textRenderer.drawTextScaled(*batch, 60.0f, 90.0f, std::to_string(rightScore), 3.0f, 1.0f, 1.0f, 1.0f);
+    if (gameOver) {
+        if (leftScore >= WINNING_SCORE) {
+            textRenderer.drawTextScaled(*batch, -56.0f, 0.0f, "YOU WIN", 3.0f, 0.3f, 1.0f, 0.3f);
+        } else {
+            textRenderer.drawTextScaled(*batch, -56.0f, 0.0f, "AI WINS", 3.0f, 1.0f, 0.3f, 0.3f);
+        }
+    }
+    batch->draw((__bridge void*)whiteSquare.getTexture(), leftPaddle->x, leftPaddle->y,
+                leftPaddle->width, leftPaddle->height, 1.0f, 0.0f, 0.0f, 1.0f);
+    batch->draw((__bridge void*)whiteSquare.getTexture(), rightPaddle->x, rightPaddle->y,
+                rightPaddle->width, rightPaddle->height, 1.0f, 0.0f, 0.0f, 1.0f);
+    batch->draw((__bridge void*)whiteSquare.getTexture(), ball->x, ball->y,
+                ball->width, ball->height, 1.0f, 0.0f, 0.0f, 1.0f);
+    Screenshot::capture(renderer.getCurrentDrawable(), "screenshot_exit.bmp");
+    renderer.endFrame();
 
     // Cleanup
     audio.shutdown();

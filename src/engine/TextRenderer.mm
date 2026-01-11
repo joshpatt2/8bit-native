@@ -15,21 +15,19 @@ TextRenderer::~TextRenderer() {
 
 bool TextRenderer::loadFont(void* device, const std::string& filename) {
     Texture* fontTexture = new Texture();
-    
+
     // Cast void* back to id<MTLDevice>
     id<MTLDevice> mtlDevice = (__bridge id<MTLDevice>)device;
-    
+
     if (!fontTexture->load(mtlDevice, filename)) {
         std::cerr << "Failed to load font texture: " << filename << std::endl;
         delete fontTexture;
         return false;
     }
-    
+
     m_texture = (__bridge void*)fontTexture->getTexture();
-    
-    // Clean up the Texture wrapper but keep the Metal texture alive
-    delete fontTexture;
-    
+    m_fontTextureOwner = fontTexture;  // Keep Texture alive to prevent ARC release
+
     std::cout << "Font loaded: " << filename << std::endl;
     return true;
 }
@@ -101,6 +99,17 @@ void TextRenderer::drawText(SpriteBatch& batch, float x, float y,
 void TextRenderer::drawTextScaled(SpriteBatch& batch, float x, float y,
                                   const std::string& text, float scale,
                                   float r, float g, float b, float a) {
+    if (!m_texture) {
+        std::cerr << "TextRenderer::drawTextScaled - no texture!" << std::endl;
+        return;
+    }
+
+    static bool debugOnce = true;
+    if (debugOnce) {
+        std::cout << "TextRenderer: texture=" << m_texture << " text='" << text << "'" << std::endl;
+        debugOnce = false;
+    }
+
     float cursorX = x;
     float scaledWidth = m_charWidth * scale;
     float scaledHeight = m_charHeight * scale;
@@ -126,7 +135,9 @@ void TextRenderer::drawTextScaled(SpriteBatch& batch, float x, float y,
 }
 
 void TextRenderer::shutdown() {
-    // Note: We're not managing the texture lifetime properly here
-    // In a real implementation, we'd need better resource management
+    if (m_fontTextureOwner) {
+        delete static_cast<Texture*>(m_fontTextureOwner);
+        m_fontTextureOwner = nullptr;
+    }
     m_texture = nullptr;
 }

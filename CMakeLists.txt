@@ -52,6 +52,7 @@ set(SOURCES
     src/engine/Animator.cpp
     src/engine/Audio.cpp
     src/engine/TextRenderer.mm
+    src/engine/Screenshot.mm
     src/game/Paddle.cpp
     src/game/Ball.cpp
 )
@@ -91,7 +92,11 @@ set_source_files_properties(
     src/main.mm
     src/engine/Renderer.mm
     src/engine/Shader.mm
-    src/engine/Texture.mm    src/engine/TextRenderer.mm    PROPERTIES COMPILE_FLAGS "-x objective-c++"
+    src/engine/Texture.mm
+    src/engine/TextRenderer.mm
+    src/engine/Screenshot.mm
+    src/engine/SpriteBatch.mm
+    PROPERTIES COMPILE_FLAGS "-x objective-c++"
 )
 
 # Copy shaders to build directory

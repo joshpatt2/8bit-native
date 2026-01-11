@@ -32,7 +32,8 @@ public:
     void shutdown();
 
 private:
-    void* m_texture = nullptr;  // Font texture
+    void* m_texture = nullptr;  // Font texture (MTLTexture)
+    void* m_fontTextureOwner = nullptr;  // Texture object that owns the MTLTexture
     int m_charWidth = 8;
     int m_charHeight = 8;
     int m_columns = 16;         // Characters per row in texture

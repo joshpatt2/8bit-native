@@ -40,6 +40,9 @@ public:
     // Start batching (call at beginning of frame)
     void begin();
 
+    // Set the render encoder for mid-batch texture flushes
+    void setEncoder(void* encoder);
+
     // Queue a sprite for rendering
     void draw(void* texture, float x, float y, float width, float height);
 
@@ -73,9 +76,11 @@ private:
     void* m_pipelineState;    // id<MTLRenderPipelineState>
     void* m_samplerState;     // id<MTLSamplerState>
     void* m_currentTexture;   // id<MTLTexture>
+    void* m_encoder;          // id<MTLRenderCommandEncoder> - stored for mid-batch flushes
 
     std::vector<SpriteVertex> m_vertices;
     int m_maxSprites;
     int m_spriteCount;
     bool m_begun;
+    size_t m_bufferOffset;  // Current offset into vertex buffer for this frame
 };
